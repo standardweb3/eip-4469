@@ -1,8 +1,8 @@
 ---
-eip: 4465
+eip: 4469
 title: Wrapped metaverse token
 author: Hyungsuk Kang (@hskang9)
-discussions-to: <URL>
+discussions-to: https://github.com/ethereum/EIPs/issues/4469
 status: Draft
 type: Standards Track
 category (*only required for Standard Track): ERC

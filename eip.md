@@ -21,14 +21,7 @@ However, current ERC1155 has been sacrificing its compatibility to current defi 
 This EIP introduces a simple interface for exposing the addresses of all wrapped ERC1155 tokens in metaverses, as well as querying wrapped assets' balances.
 
 ## Motivation
-Many projects, particularly in decentralized finance, have created new assets by wrapping existing tokens. This includes, but is not limited to:
-
-* Liquidity pool tokens for automated market makers (Uniswap, Balancer)
-* Interest-bearing lending tokens (Compound cTokens, Aave aTokens)
-* Managed investment tokens (Set Protocol, yEarn vaults)
-* Utility wrapper tokens (DeFi777)
-
-While these tokens enable many new applications and financial primitives, they present a number of challenges for wallets and other applications. 
+Many metaverse or NFT projects are choosing ERC1155 for efficiently generating their assets. Choosing ERC1155 for managing non-fungible tokens or other tokens in the game has brought memory efficiencies and less contract address for systems to operate. However, this has brought incompatibility between other existing defi infrastructure(e.g. Dexes, Lending, etc). When a user wants to liquidate their game assets or metaverse assets, he or she needs to change it to intermediary assets to acquire it then change it to ETH then buy other assets in different metaverse. This is very inefficient for interoperability between connecting ecosystems between metaverses as well due to gas fees required to convert one asset with another. Just as Wrapped ether has been invented, I propose to have wrapped ERC1155 asset that can be both backward compatible to existing decentralized finance infrastructure and free trade between metaverses.
 
 ### Example
 
@@ -37,89 +30,35 @@ For example, if a user deposits tokens in a Uniswap pool, they will receive liqu
 If Uniswap implemented this EIP, then wallets could look up the wrapped tokens and display them as part of their UI. They could also query the market price data for the wrapped tokens, allowing them to calculate the market value of the LP token.
 
 ## Specification
-The key words “MUST”, “MUST NOT”, “REQUIRED”, “SHALL”, “SHALL NOT”, “SHOULD”, “SHOULD NOT”, “RECOMMENDED”, “MAY”, and “OPTIONAL” in this document are to be interpreted as described in RFC 2119.
+Using `create2`, Wrapped metaverse tokens must be generated from creating wrapped ERC20 from the owner of ERC1155.
+Once wrapped erc20 of metaverse assets are created, people can deposit ERC1155 to the contract then get the same kind and amount of designated ERC20 tokens.
+Deposited ERC1155 tokens can be withdrawn from the contract by depositing designated wrapped ERC20 token. 
 
-```solidity
- 
-pragma solidity ^0.5.0;
-
-contract WrapperToken {
-  /**
-   * @dev Should return a list of addresses for tokens that may be wrapped by this contract
-   *
-   * MUST NOT modify state (using STATICCALL for solc < 0.5, view modifier for solc > 0.5)
-   * MUST allow external calls
-   */ 
-  function wrappedTokens() external view returns (address[] memory);
-
-  /**
-   * @dev Should return whether the signature provided is valid for the provided data
-   * @param wrappedToken The address of a token
-   * @param holder The address of the account holding a wrapper token
-   *
-   * MUST return the bytes4 magic value 0x1626ba7e when function passes.
-   * MUST NOT modify state (using STATICCALL for solc < 0.5, view modifier for solc > 0.5)
-   * MUST return 0 if the user holds 0 wrapper tokens
-   * MUST return 0 if the queried token is not wrapped by this contract
-   * MUST allow external calls
-   */ 
-  function wrappedBalanceOf(
-    address wrappedToken, 
-    address holder)
-    public
-    view 
-    returns (uint256 balance);
-}
-
-```
+Current implementation exists in this [repo]().
 
 ## Rationale
-The specification first defines a simple view function that returns an array of addresses that can be queried. This function alone is useful for any application that wants to easily identify and display wrapper tokens (such as block explorers like Etherscan).
-
-The wrappedBalanceOf function allows querying the amount of each wrapped token that is currently allocated to a user. This function is useful for wallets and portfolio trackers to query and display underlying token balances.
-
-These two functions will typically be used together: an application will first query the list of wrapped tokens, then query the wrapped balance of each token for a given token holder.
+The specification designates a corresponding wrapped ERC20 token assigned to the ERC1155 token contract.
+Wrapped ERC20 tokens are identified via their assetId, ERC1155 address, and data(for receiver).
+ERC 1155 does not require any change.
 
 ### Introspection
 
-Contracts implementing this standard should make their interface available, either using ERC165 or ERC1820 (to be determined by community feedback).
+Contracts implementing this standard should make their interface available, such as `IMeta` for unwrapping and wrapping.
 
 ## Backwards Compatibility
 
-This EIP is backwards compatible with all existing contracts, as it only provides new view functions. It does not alter the contract state, behavior or any existing methods.
+This EIP is backwards compatible with all existing contracts, as it only provides new view functions. Wrapped ERC20 in this specifcation adds data for receiver, assetId/ERC1155 address to identify itself, but it fully manages to support other ERC20 functionalities.
 
 ## Implementation
-The following is an example of how this EIP could be implemented in the Uniswap V2 UniswapV2Pair contract:
 
-```solidity
-contract UniswapV2Pair is UniswapV2ERC20, IWrappedToken {
-  address public token0;
-  address public token1;
+Implementation is currently made in this [repo]().
 
-  function wrappedTokens() public view returns (address[] memory) {
-    address[] tokens = new address[](2);
-    tokens[0] = token0;
-    tokens[1] = token1;
-    return tokens;
-  }
-
-  function wrappedBalanceOf(address wrappedToken, address holder) 
-      public view returns (uint256 balance) {
-    if (wrappedToken != token0 && wrappedToken != token1) {
-      return 0;
-    }
-
-    uint256 balance = IERC20(wrappedToken).balanceOf(address(this));
-    uint liquidity = balanceOf[holder];
-
-    return liquidity.mul(balance).div(_totalSupply);
-  }
-}
-```
+Standards of fragmentizing non-fungible-tokens could be added upon wrapping or come up with another standard.
 
 ## Security Considerations
 
-This EIP does not introduce any significant security concerns, as it simply standardizes the access to information that is already available in many contracts.
+There may be security concerns regarding create2 as it has not yet been tested for this use case.
+Other than that, this EIP does not introduce any significant security concerns, as it simply standardizes the access to information that is already available in many contracts.
 
 It should be noted that this EIP does not enforce any guarantees about the validity of the information provided. A token could easily report inaccurate balance data, potentially misleading or scamming users.
 

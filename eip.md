@@ -48,7 +48,7 @@ This EIP is backwards compatible with all existing contracts, as it only provide
 
 ## Implementation
 
-Implementation is currently made in this [repo]().
+Implementation is currently made in this [repo](https://github.com/digitalnativeinc/eip-4465).
 
 Standards of fragmentizing non-fungible-tokens could be added upon wrapping or come up with another standard.
 
